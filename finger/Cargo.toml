@@ -1,0 +1,5 @@
+[package]
+
+name = "finger"
+version = "0.0.1"
+authors = ["Adam Mayer <phooky@gmail.com>"]
