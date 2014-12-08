@@ -46,7 +46,6 @@ fn finger_remote(req:&str,hostname:&str,opts:Options) -> Result<(), IoError> {
     }
     ips.dedup();
     for ip in ips.iter() {
-        println!("Trying {}...",ip);
         let addr = SocketAddr{ ip : *ip, port : PORT_NUM };
         match TcpStream::connect_timeout(addr,Duration::seconds(5)) {
             Ok(mut stream) => {
@@ -57,7 +56,6 @@ fn finger_remote(req:&str,hostname:&str,opts:Options) -> Result<(), IoError> {
                 _ => panic!("Unexpected error on connect!"),
             }
         }
-        println!("Finished {}...",ip);
     }
     Ok(())
 }
