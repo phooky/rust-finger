@@ -19,8 +19,12 @@ struct Options {
 
 fn main() {
     let (opts, targets) = parse_arguments(os::args());
-    for target in targets.iter() {
-        finger(target,opts);
+    if targets.len() == 0 {
+        system_report();
+    } else {
+        for target in targets.iter() {
+            finger(target,opts);
+        }
     }
 }
 
@@ -34,8 +38,40 @@ fn finger(target : &String, opts : Options) -> Result<(), IoError> {
 
 mod passwd;
 
+
+//Login: phooky         			Name: Adam Mayer
+//Directory: /home/phooky             	Shell: /bin/bash
+//On since Thu Dec  4 15:46 (EST) on tty2     2 days 23 hours idle
+//     (messages off)
+//On since Sat Nov 29 14:01 (EST) on :0 from :0 (messages off)
+//On since Tue Dec  2 14:28 (EST) on pts/3 from :0
+//    5 days 1 hour idle
+//On since Thu Dec  4 16:05 (EST) on pts/1 from :0
+//    45 seconds idle
+//No mail.
+//No Plan.
+fn user_report_verbose(e : & passwd::Entry) {
+    println!("Login: {: <33}Name: {: <33}",
+             e.username,e.gecos.name);
+    if e.gecos.location.len() > 0 || 
+        e.gecos.telephone.len() > 0 {
+        println!("Office: {: <30}Telephone: {: <30}",
+                 e.gecos.location, e.gecos.telephone);
+    }
+    println!("Directory: {: <29}Shell: {: <33}",
+             e.home,e.shell);
+}
+
+fn system_report() {
+    println!("System report");
+}
+
 fn finger_local(target:&String,opts:Options) -> Result<(), IoError> {
-    println!("local {}",target);
+    let uname = target.as_slice();
+    match passwd::get_entry(String::from_str(uname)) {
+        None => {println!("{}: no such user.",uname);}
+        Some(e) => {user_report_verbose(&e);}
+    };
     Ok(())
 }
 
