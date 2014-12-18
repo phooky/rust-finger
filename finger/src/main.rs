@@ -32,6 +32,8 @@ fn finger(target : &String, opts : Options) -> Result<(), IoError> {
     }
 }
 
+mod passwd;
+
 fn finger_local(target:&String,opts:Options) -> Result<(), IoError> {
     println!("local {}",target);
     Ok(())
