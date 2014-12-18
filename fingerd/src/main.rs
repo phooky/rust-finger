@@ -1,8 +1,14 @@
 // Finger server in Rust
 
+extern crate getopts;
+use getopts::{optopt,optflag,getopts,OptGroup,usage};
+use std::os;
 use std::io::net::ip::{SocketAddr,IpAddr};
 use std::io::net::tcp::{TcpListener,TcpStream};
-use std::io::{Acceptor,Listener,BufferedStream};
+use std::io::{Acceptor,Listener,BufferedStream,BufferedReader};
+use std::io::fs::File;
+use std::path::posix::Path;
+
 //use std::time::duration::Duration;
 //use std::io::net::addrinfo;
 //use std::io::IoError;
@@ -12,6 +18,35 @@ static LOCAL_IP : &'static str = "127.0.0.1";
 
 mod passwd;
 
+struct FingerdConfig {
+    local_ip : String,
+    permit_redirects : bool,
+}
+
+fn parse_config(path : &str) -> FingerdConfig {
+    let mut config = FingerdConfig { local_ip : String::from_str(LOCAL_IP),
+                                    permit_redirects : false };
+    let p = Path::new(path);
+    match File::open(&p) {
+        Ok(f) => {
+            let mut br = BufferedReader::new(f);
+            for line in br.lines() {
+                let st = line.unwrap();
+                let s = st.as_slice().trim();
+                if s.len() == 0 || s.starts_with("#") {
+                    continue;
+                }
+                let kv : Vec<&str> = s.split('=').map(|x| x.trim()).collect();
+                if kv.len() < 2 {
+                    panic!("Unparseable line {}",s);
+                }
+                println!("Key {} Value {}",kv[0],kv[1]);
+            }
+        }
+        Err(..) => (),
+    }
+    config
+}
 
 //Login: phooky         			Name: Adam Mayer
 //Directory: /home/phooky             	Shell: /bin/bash
@@ -69,8 +104,28 @@ fn finger_client(mut stream: TcpStream) {
 }
 
 fn main() {
+    let opts = &[
+        optopt("","ip","IP to host server on","IP_ADDR"),
+        optopt("c","","Config file (defaults to /etc/fingerd.conf)",
+               "CONFIG_PATH"),
+        optflag("h","help","Show usage information"),
+    ];
+    let args : Vec<String> = os::args();
+    let program = args[0].clone();
+    let matches = match getopts(args.tail(),opts) {
+        Ok(m) => m,
+        Err(f) => panic!(f.to_string())
+    };
+    if matches.opt_present("h") {
+        println!("{}",usage("Finger protocol server",opts));
+        return;
+    }
+    let config = match matches.opt_str("c") {
+        Some(path) => parse_config(path.as_slice()),
+        None => parse_config("/etc/fingerd.conf"),
+    };
     let ip_addr : IpAddr;
-    match from_str::<IpAddr>(LOCAL_IP) {
+    match from_str::<IpAddr>(config.local_ip.as_slice()) {
         None => panic!("Can not parse local IP specification!"),
         Some(ip) => ip_addr = ip,
     }
